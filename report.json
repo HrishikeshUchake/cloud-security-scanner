@@ -1,17 +1,46 @@
 {
-    "S3_Vulnerabilities": [
+    "S3_Vulnerabilities": [],
+    "SecurityGroup_Vulnerabilities": [],
+    "IAM_Vulnerabilities": [
         {
-            "Resource": "cloud-scanner-vulnerable-test-58ab5ad0",
-            "Issue": "Public access not fully blocked."
+            "Resource": "AuditorUser",
+            "Issue": "No MFA enabled for user."
         }
     ],
-    "SecurityGroup_Vulnerabilities": [],
-    "IAM_Vulnerabilities": [],
     "RDS_Vulnerabilities": [],
     "CloudTrail_Vulnerabilities": [
         {
             "Resource": "Account",
             "Issue": "No CloudTrails configured."
+        }
+    ],
+    "EBS_Vulnerabilities": [],
+    "Lambda_Vulnerabilities": [
+        {
+            "Resource": "s3-bucket-count",
+            "Issue": "Resource-based policy allows public access."
+        },
+        {
+            "Resource": "s3-bucket-count",
+            "Issue": "Resource-based policy allows public access."
+        },
+        {
+            "Resource": "rectangle-compute",
+            "Issue": "Resource-based policy allows public access."
+        },
+        {
+            "Resource": "rectangle-compute",
+            "Issue": "Resource-based policy allows public access."
+        }
+    ],
+    "APIGateway_Vulnerabilities": [
+        {
+            "Resource": "RectangleAPI (Stage: dev)",
+            "Issue": "API stage lacks WAF protection."
+        },
+        {
+            "Resource": "RectangleAPI (/rectangle : POST)",
+            "Issue": "API method lacks authorization configuration."
         }
     ]
 }

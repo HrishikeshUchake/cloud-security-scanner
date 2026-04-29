@@ -1,0 +1,150 @@
+E.......F..
+======================================================================
+ERROR: test_apigw_no_waf (test_cloud_scanner.TestCloudSecurityScanner.test_apigw_no_waf)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/moto/apigateway/models.py", line 14, in <module>
+    from openapi_spec_validator import validate  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'openapi_spec_validator'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/moto/core/models.py", line 120, in wrapper
+    result = func(*args, **kwargs)
+  File "/Users/hrishikesh/cloud-security-scanner/cloud-security-scanner/test_cloud_scanner.py", line 177, in test_apigw_no_waf
+    api = apigw.create_rest_api(name='test-api')
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/client.py", line 602, in _api_call
+    return self._make_api_call(operation_name, kwargs)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/context.py", line 123, in wrapper
+    return func(*args, **kwargs)
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/client.py", line 1060, in _make_api_call
+    http, parsed_response = self._make_request(
+                            ~~~~~~~~~~~~~~~~~~^
+        operation_model, request_dict, request_context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/client.py", line 1084, in _make_request
+    return self._endpoint.make_request(operation_model, request_dict)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/endpoint.py", line 119, in make_request
+    return self._send_request(request_dict, operation_model)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/endpoint.py", line 200, in _send_request
+    while self._needs_retry(
+          ~~~~~~~~~~~~~~~~~^
+        attempts,
+        ^^^^^^^^^
+    ...<3 lines>...
+        exception,
+        ^^^^^^^^^^
+    ):
+    ^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/endpoint.py", line 360, in _needs_retry
+    responses = self._event_emitter.emit(
+        event_name,
+    ...<5 lines>...
+        request_dict=request_dict,
+    )
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/hooks.py", line 412, in emit
+    return self._emitter.emit(aliased_event_name, **kwargs)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/hooks.py", line 256, in emit
+    return self._emit(event_name, kwargs)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/hooks.py", line 239, in _emit
+    response = handler(**kwargs)
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/retryhandler.py", line 207, in __call__
+    if self._checker(**checker_kwargs):
+       ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/retryhandler.py", line 284, in __call__
+    should_retry = self._should_retry(
+        attempt_number, response, caught_exception
+    )
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/retryhandler.py", line 307, in _should_retry
+    return self._checker(
+           ~~~~~~~~~~~~~^
+        attempt_number, response, caught_exception
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/retryhandler.py", line 363, in __call__
+    checker_response = checker(
+        attempt_number, response, caught_exception
+    )
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/retryhandler.py", line 247, in __call__
+    return self._check_caught_exception(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        attempt_number, caught_exception
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/retryhandler.py", line 416, in _check_caught_exception
+    raise caught_exception
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/endpoint.py", line 276, in _do_get_response
+    responses = self._event_emitter.emit(event_name, request=request)
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/hooks.py", line 412, in emit
+    return self._emitter.emit(aliased_event_name, **kwargs)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/hooks.py", line 256, in emit
+    return self._emit(event_name, kwargs)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/botocore/hooks.py", line 239, in _emit
+    response = handler(**kwargs)
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/moto/core/botocore_stubber.py", line 38, in __call__
+    response = self.process_request(request)
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/moto/core/botocore_stubber.py", line 68, in process_request
+    backend_dict = backends.get_backend(service)  # type: ignore[call-overload]
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/moto/backends.py", line 816, in get_backend
+    return _import_backend(
+        ALT_SERVICE_NAMES.get(safe_name, safe_name),
+        f"{ALT_BACKEND_NAMES.get(safe_name, safe_name)}_backends",
+    )
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/moto/backends.py", line 367, in _import_backend
+    module = importlib.import_module("moto." + module_name)
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/moto/apigateway/__init__.py", line 1, in <module>
+    from .models import apigateway_backends  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/moto/apigateway/models.py", line 18, in <module>
+    from openapi_spec_validator import validate_spec as validate  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'openapi_spec_validator'
+
+======================================================================
+FAIL: test_s3_secure_bucket_ignored (test_cloud_scanner.TestCloudSecurityScanner.test_s3_secure_bucket_ignored)
+Benchmark: Should ignore a securely configured bucket
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/homebrew/Caskroom/miniconda/base/lib/python3.13/site-packages/moto/core/models.py", line 120, in wrapper
+    result = func(*args, **kwargs)
+  File "/Users/hrishikesh/cloud-security-scanner/cloud-security-scanner/test_cloud_scanner.py", line 43, in test_s3_secure_bucket_ignored
+    self.assertFalse(any(v['Resource'] == 'my-secure-bucket' for v in vulnerabilities))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 11 tests in 3.600s
+
+FAILED (failures=1, errors=1)
+Scanning CloudTrail...
+Scanning EBS Volumes...
+Scanning IAM Roles...
+Scanning IAM Roles...
+Scanning IAM Users...
+Scanning Lambda Functions...
+Scanning S3 Buckets...
+Scanning S3 Buckets...
+Scanning Security Groups...
+Scanning Security Groups...

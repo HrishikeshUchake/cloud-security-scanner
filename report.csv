@@ -1,3 +1,9 @@
 Category,Resource,Issue
-S3_Vulnerabilities,cloud-scanner-vulnerable-test-58ab5ad0,Public access not fully blocked.
+IAM_Vulnerabilities,AuditorUser,No MFA enabled for user.
 CloudTrail_Vulnerabilities,Account,No CloudTrails configured.
+Lambda_Vulnerabilities,s3-bucket-count,Resource-based policy allows public access.
+Lambda_Vulnerabilities,s3-bucket-count,Resource-based policy allows public access.
+Lambda_Vulnerabilities,rectangle-compute,Resource-based policy allows public access.
+Lambda_Vulnerabilities,rectangle-compute,Resource-based policy allows public access.
+APIGateway_Vulnerabilities,RectangleAPI (Stage: dev),API stage lacks WAF protection.
+APIGateway_Vulnerabilities,RectangleAPI (/rectangle : POST),API method lacks authorization configuration.

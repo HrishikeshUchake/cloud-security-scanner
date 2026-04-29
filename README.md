@@ -13,21 +13,31 @@ The scanner evaluates the security posture of S3 buckets by querying the `GetPub
 - `BlockPublicPolicy`
 - `RestrictPublicBuckets`
 
-Any bucket lacking a comprehensive block across all four parameters is flagged as a potential data exfiltration risk.
+Any bucket lacking a comprehensive block across all four parameters is flagged as a potential data exfiltration risk. Additionally, it queries the `GetBucketEncryption` API to ensure default encryption (SSE-S3 or KMS) is explicitly enabled to protect data at rest.
 
 ### 2. Amazon EC2 Security Groups (Network Firewalls)
 The tool iterates through all Security Groups within the VPCs, inspecting the `IpPermissions` arrays. It parses ingress network ACLs and flags overly permissive CIDR blocks (`0.0.0.0/0` or `::/0`) explicitly tied to sensitive administrative ports (e.g., TCP 22 for SSH, TCP 3389 for RDP, or completely unrestricted traffic).
 
 ### 3. AWS IAM (Identity and Access Management)
-The scanner performs deep policy parsing on IAM Roles to enforce the Principle of Least Privilege:
+The scanner performs deep policy parsing on IAM Roles and evaluates IAM Users to enforce the Principle of Least Privilege and strong authentication:
 - **Managed Policies:** Scans attached policies to flag overly broad access rights, specifically targeting roles with `AdministratorAccess`.
 - **Inline Policies:** Iterates through custom inline JSON policy documents. It parses the `Statement` blocks to identify overly permissive wildcard configurations where both `Action: "*"` and `Resource: "*"` are present simultaneously.
+- **IAM Users:** Evaluates individual users to ensure Multi-Factor Authentication (MFA) is enabled and flags any active access keys that are older than 90 days to enforce credential rotation.
 
 ### 4. Amazon RDS (Relational Database Service)
 Analyzes RDS cluster and instance configurations, specifically evaluating the `PubliclyAccessible` boolean flag to ensure managed databases are not exposed directly to the public internet.
 
 ### 5. AWS CloudTrail (Audit & Compliance)
 Verifies that API auditing is both present and active across the account. It queries the `DescribeTrails` and `GetTrailStatus` endpoints to ensure trails exist and that the `IsLogging` status is currently set to `True`.
+
+### 6. Amazon EBS (Elastic Block Store)
+Analyzes `DescribeVolumes` API to explicitly flag any unencrypted Elastic Block Store (EBS) volumes to protect data at rest.
+
+### 7. AWS Lambda (Serverless Compute)
+Evaluates Lambda functions to check for environment variables lacking KMS encryption. It also parses the resource-based policies to flag any functions allowing public access (`Principal: "*"`).
+
+### 8. Amazon API Gateway
+Scans REST API stages to detect endpoints lacking Web Application Firewall (WAF) protection. Additionally, it evaluates API methods to flag routes missing authorization configurations (`authorizationType: "NONE"`).
 
 ---
 

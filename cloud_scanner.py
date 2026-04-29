@@ -2,6 +2,7 @@ import boto3
 import json
 import csv
 import urllib.parse
+from datetime import datetime, timezone
 from botocore.exceptions import ClientError
 
 class CloudSecurityScanner:
@@ -11,13 +12,18 @@ class CloudSecurityScanner:
         self.iam_client = boto3.client('iam')
         self.rds_client = boto3.client('rds')
         self.cloudtrail_client = boto3.client('cloudtrail')
+        self.lambda_client = boto3.client('lambda')
+        self.apigw_client = boto3.client('apigateway')
         
         self.report = {
             "S3_Vulnerabilities": [],
             "SecurityGroup_Vulnerabilities": [],
             "IAM_Vulnerabilities": [],
             "RDS_Vulnerabilities": [],
-            "CloudTrail_Vulnerabilities": []
+            "CloudTrail_Vulnerabilities": [],
+            "EBS_Vulnerabilities": [],
+            "Lambda_Vulnerabilities": [],
+            "APIGateway_Vulnerabilities": []
         }
 
     def scan_s3_buckets(self):
@@ -35,6 +41,11 @@ class CloudSecurityScanner:
                 except ClientError as e:
                     if e.response['Error']['Code'] == 'NoSuchPublicAccessBlockConfiguration':
                         self.report["S3_Vulnerabilities"].append({"Resource": bucket_name, "Issue": "No Public Access Block config found."})
+                try:
+                    self.s3_client.get_bucket_encryption(Bucket=bucket_name)
+                except ClientError as e:
+                    if e.response['Error']['Code'] == 'ServerSideEncryptionConfigurationNotFoundError':
+                        self.report["S3_Vulnerabilities"].append({"Resource": bucket_name, "Issue": "Default encryption is not enabled."})
         except Exception as e:
             print(f"Error scanning S3: {e}")
 
@@ -113,6 +124,98 @@ class CloudSecurityScanner:
         except Exception as e:
             print(f"Error scanning CloudTrail: {e}")
 
+
+    def scan_iam_users(self):
+        print("Scanning IAM Users...")
+        try:
+            users = self.iam_client.list_users().get('Users', [])
+            for user in users:
+                user_name = user['UserName']
+                # Check MFA
+                mfa = self.iam_client.list_mfa_devices(UserName=user_name).get('MFADevices', [])
+                if not mfa:
+                    self.report["IAM_Vulnerabilities"].append({
+                        "Resource": user_name,
+                        "Issue": "No MFA enabled for user."
+                    })
+                # Check Access Keys
+                keys = self.iam_client.list_access_keys(UserName=user_name).get('AccessKeyMetadata', [])
+                for key in keys:
+                    if key['Status'] == 'Active':
+                        age = (datetime.now(timezone.utc) - key['CreateDate']).days
+                        if age > 90:
+                            self.report["IAM_Vulnerabilities"].append({
+                                "Resource": f"{user_name} ({key['AccessKeyId']})",
+                                "Issue": f"Active access key is older than 90 days."
+                            })
+        except Exception as e:
+            print(f"Error scanning IAM Users: {e}")
+
+    def scan_ebs_volumes(self):
+        print("Scanning EBS Volumes...")
+        try:
+            volumes = self.ec2_client.describe_volumes().get('Volumes', [])
+            for vol in volumes:
+                if not vol.get('Encrypted'):
+                    self.report["EBS_Vulnerabilities"].append({
+                        "Resource": vol['VolumeId'],
+                        "Issue": "EBS volume is not encrypted."
+                    })
+        except Exception as e:
+            print(f"Error scanning EBS Volumes: {e}")
+
+    def scan_lambda_functions(self):
+        print("Scanning Lambda Functions...")
+        try:
+            funcs = self.lambda_client.list_functions().get('Functions', [])
+            for func in funcs:
+                func_name = func['FunctionName']
+                if 'Environment' in func and 'Variables' in func['Environment']:
+                    if 'KMSKeyArn' not in func:
+                        self.report["Lambda_Vulnerabilities"].append({
+                            "Resource": func_name,
+                            "Issue": "Environment variables lacking KMS encryption."
+                        })
+                try:
+                    policy_str = self.lambda_client.get_policy(FunctionName=func_name).get('Policy', '{}')
+                    for stmt in json.loads(policy_str).get('Statement', []):
+                        if stmt.get('Effect') == 'Allow' and stmt.get('Principal') == '*':
+                            self.report["Lambda_Vulnerabilities"].append({
+                                "Resource": func_name,
+                                "Issue": "Resource-based policy allows public access."
+                            })
+                except ClientError as e:
+                    if e.response['Error']['Code'] != 'ResourceNotFoundException':
+                        pass
+        except Exception as e:
+            print(f"Error scanning Lambda Functions: {e}")
+
+    def scan_api_gateways(self):
+        print("Scanning API Gateways...")
+        try:
+            apis = self.apigw_client.get_rest_apis().get('items', [])
+            for api in apis:
+                api_id = api['id']
+                stages = self.apigw_client.get_stages(restApiId=api_id).get('item', [])
+                for stage in stages:
+                    if not stage.get('webAclArn'):
+                        self.report["APIGateway_Vulnerabilities"].append({
+                            "Resource": f"{api['name']} (Stage: {stage.get('stageName', 'default')})",
+                            "Issue": "API stage lacks WAF protection."
+                        })
+                resources = self.apigw_client.get_resources(restApiId=api_id).get('items', [])
+                for res in resources:
+                    for method_name in res.get('resourceMethods', {}):
+                        if method_name != 'OPTIONS':
+                            method_info = self.apigw_client.get_method(restApiId=api_id, resourceId=res['id'], httpMethod=method_name)
+                            if method_info.get('authorizationType') == 'NONE':
+                                self.report["APIGateway_Vulnerabilities"].append({
+                                    "Resource": f"{api['name']} ({res.get('path', '/')} : {method_name})",
+                                    "Issue": "API method lacks authorization configuration."
+                                })
+        except Exception as e:
+            print(f"Error scanning API Gateways: {e}")
+
     def generate_reports(self):
         print("\nGenerating Reports...")
         # JSON
@@ -145,6 +248,10 @@ if __name__ == "__main__":
     scanner.scan_s3_buckets()
     scanner.scan_security_groups()
     scanner.scan_iam_roles()
+    scanner.scan_iam_users()
+    scanner.scan_ebs_volumes()
+    scanner.scan_lambda_functions()
+    scanner.scan_api_gateways()
     scanner.scan_rds_instances()
     scanner.scan_cloudtrail()
     scanner.generate_reports()
