@@ -1,0 +1,3 @@
+Category,Resource,Issue
+S3_Vulnerabilities,cloud-scanner-vulnerable-test-58ab5ad0,Public access not fully blocked.
+CloudTrail_Vulnerabilities,Account,No CloudTrails configured.

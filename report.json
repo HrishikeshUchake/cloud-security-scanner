@@ -1,0 +1,17 @@
+{
+    "S3_Vulnerabilities": [
+        {
+            "Resource": "cloud-scanner-vulnerable-test-58ab5ad0",
+            "Issue": "Public access not fully blocked."
+        }
+    ],
+    "SecurityGroup_Vulnerabilities": [],
+    "IAM_Vulnerabilities": [],
+    "RDS_Vulnerabilities": [],
+    "CloudTrail_Vulnerabilities": [
+        {
+            "Resource": "Account",
+            "Issue": "No CloudTrails configured."
+        }
+    ]
+}
