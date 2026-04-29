@@ -5,6 +5,7 @@ import urllib.parse
 from datetime import datetime, timezone
 from botocore.exceptions import ClientError
 
+
 class CloudSecurityScanner:
     def __init__(self):
         self.s3_client = boto3.client('s3')
@@ -14,7 +15,7 @@ class CloudSecurityScanner:
         self.cloudtrail_client = boto3.client('cloudtrail')
         self.lambda_client = boto3.client('lambda')
         self.apigw_client = boto3.client('apigateway')
-        
+
         self.report = {
             "S3_Vulnerabilities": [],
             "SecurityGroup_Vulnerabilities": [],
@@ -33,19 +34,23 @@ class CloudSecurityScanner:
             for bucket in buckets:
                 bucket_name = bucket['Name']
                 try:
-                    pab = self.s3_client.get_public_access_block(Bucket=bucket_name)
+                    pab = self.s3_client.get_public_access_block(
+                        Bucket=bucket_name)
                     config = pab['PublicAccessBlockConfiguration']
-                    if not all([config.get('BlockPublicAcls'), config.get('IgnorePublicAcls'), 
+                    if not all([config.get('BlockPublicAcls'), config.get('IgnorePublicAcls'),
                                 config.get('BlockPublicPolicy'), config.get('RestrictPublicBuckets')]):
-                        self.report["S3_Vulnerabilities"].append({"Resource": bucket_name, "Issue": "Public access not fully blocked."})
+                        self.report["S3_Vulnerabilities"].append(
+                            {"Resource": bucket_name, "Issue": "Public access not fully blocked."})
                 except ClientError as e:
                     if e.response['Error']['Code'] == 'NoSuchPublicAccessBlockConfiguration':
-                        self.report["S3_Vulnerabilities"].append({"Resource": bucket_name, "Issue": "No Public Access Block config found."})
+                        self.report["S3_Vulnerabilities"].append(
+                            {"Resource": bucket_name, "Issue": "No Public Access Block config found."})
                 try:
                     self.s3_client.get_bucket_encryption(Bucket=bucket_name)
                 except ClientError as e:
                     if e.response['Error']['Code'] == 'ServerSideEncryptionConfigurationNotFoundError':
-                        self.report["S3_Vulnerabilities"].append({"Resource": bucket_name, "Issue": "Default encryption is not enabled."})
+                        self.report["S3_Vulnerabilities"].append(
+                            {"Resource": bucket_name, "Issue": "Default encryption is not enabled."})
         except Exception as e:
             print(f"Error scanning S3: {e}")
 
@@ -59,7 +64,7 @@ class CloudSecurityScanner:
                         if ip_range.get('CidrIp') == '0.0.0.0/0':
                             port = perm.get('FromPort', 'All')
                             self.report["SecurityGroup_Vulnerabilities"].append({
-                                "Resource": f"{sg['GroupName']} ({sg['GroupId']})", 
+                                "Resource": f"{sg['GroupName']} ({sg['GroupId']})",
                                 "Issue": f"Open to 0.0.0.0/0 on port {port}."
                             })
         except Exception as e:
@@ -72,24 +77,29 @@ class CloudSecurityScanner:
             for role in roles:
                 role_name = role['RoleName']
                 # Check Attached Policies
-                attached = self.iam_client.list_attached_role_policies(RoleName=role_name).get('AttachedPolicies', [])
+                attached = self.iam_client.list_attached_role_policies(
+                    RoleName=role_name).get('AttachedPolicies', [])
                 for policy in attached:
                     if policy['PolicyName'] == 'AdministratorAccess':
-                        self.report["IAM_Vulnerabilities"].append({"Resource": role_name, "Issue": "Attached to AdministratorAccess."})
-                
+                        self.report["IAM_Vulnerabilities"].append(
+                            {"Resource": role_name, "Issue": "Attached to AdministratorAccess."})
+
                 # Check Inline Policies for Action: * and Resource: *
-                inline_policies = self.iam_client.list_role_policies(RoleName=role_name).get('PolicyNames', [])
+                inline_policies = self.iam_client.list_role_policies(
+                    RoleName=role_name).get('PolicyNames', [])
                 for policy_name in inline_policies:
-                    policy_doc = self.iam_client.get_role_policy(RoleName=role_name, PolicyName=policy_name).get('PolicyDocument', {})
+                    policy_doc = self.iam_client.get_role_policy(
+                        RoleName=role_name, PolicyName=policy_name).get('PolicyDocument', {})
                     statements = policy_doc.get('Statement', [])
-                    if isinstance(statements, dict): statements = [statements]
+                    if isinstance(statements, dict):
+                        statements = [statements]
                     for stmt in statements:
                         if stmt.get('Effect') == 'Allow':
                             action = stmt.get('Action', [])
                             resource = stmt.get('Resource', [])
                             if (action == '*' or '*' in action) and (resource == '*' or '*' in resource):
                                 self.report["IAM_Vulnerabilities"].append({
-                                    "Resource": role_name, 
+                                    "Resource": role_name,
                                     "Issue": f"Inline policy '{policy_name}' allows unrestricted access (*/*)."
                                 })
         except Exception as e:
@@ -102,7 +112,7 @@ class CloudSecurityScanner:
             for db in instances:
                 if db.get('PubliclyAccessible'):
                     self.report["RDS_Vulnerabilities"].append({
-                        "Resource": db['DBInstanceIdentifier'], 
+                        "Resource": db['DBInstanceIdentifier'],
                         "Issue": "Database is publicly accessible."
                     })
         except Exception as e:
@@ -113,17 +123,18 @@ class CloudSecurityScanner:
         try:
             trails = self.cloudtrail_client.describe_trails().get('trailList', [])
             if not trails:
-                self.report["CloudTrail_Vulnerabilities"].append({"Resource": "Account", "Issue": "No CloudTrails configured."})
+                self.report["CloudTrail_Vulnerabilities"].append(
+                    {"Resource": "Account", "Issue": "No CloudTrails configured."})
             for trail in trails:
-                status = self.cloudtrail_client.get_trail_status(Name=trail['TrailARN'])
+                status = self.cloudtrail_client.get_trail_status(
+                    Name=trail['TrailARN'])
                 if not status.get('IsLogging'):
                     self.report["CloudTrail_Vulnerabilities"].append({
-                        "Resource": trail['Name'], 
+                        "Resource": trail['Name'],
                         "Issue": "Trail exists but logging is currently disabled."
                     })
         except Exception as e:
             print(f"Error scanning CloudTrail: {e}")
-
 
     def scan_iam_users(self):
         print("Scanning IAM Users...")
@@ -132,17 +143,20 @@ class CloudSecurityScanner:
             for user in users:
                 user_name = user['UserName']
                 # Check MFA
-                mfa = self.iam_client.list_mfa_devices(UserName=user_name).get('MFADevices', [])
+                mfa = self.iam_client.list_mfa_devices(
+                    UserName=user_name).get('MFADevices', [])
                 if not mfa:
                     self.report["IAM_Vulnerabilities"].append({
                         "Resource": user_name,
                         "Issue": "No MFA enabled for user."
                     })
                 # Check Access Keys
-                keys = self.iam_client.list_access_keys(UserName=user_name).get('AccessKeyMetadata', [])
+                keys = self.iam_client.list_access_keys(
+                    UserName=user_name).get('AccessKeyMetadata', [])
                 for key in keys:
                     if key['Status'] == 'Active':
-                        age = (datetime.now(timezone.utc) - key['CreateDate']).days
+                        age = (datetime.now(timezone.utc) -
+                               key['CreateDate']).days
                         if age > 90:
                             self.report["IAM_Vulnerabilities"].append({
                                 "Resource": f"{user_name} ({key['AccessKeyId']})",
@@ -177,7 +191,8 @@ class CloudSecurityScanner:
                             "Issue": "Environment variables lacking KMS encryption."
                         })
                 try:
-                    policy_str = self.lambda_client.get_policy(FunctionName=func_name).get('Policy', '{}')
+                    policy_str = self.lambda_client.get_policy(
+                        FunctionName=func_name).get('Policy', '{}')
                     for stmt in json.loads(policy_str).get('Statement', []):
                         if stmt.get('Effect') == 'Allow' and stmt.get('Principal') == '*':
                             self.report["Lambda_Vulnerabilities"].append({
@@ -196,18 +211,21 @@ class CloudSecurityScanner:
             apis = self.apigw_client.get_rest_apis().get('items', [])
             for api in apis:
                 api_id = api['id']
-                stages = self.apigw_client.get_stages(restApiId=api_id).get('item', [])
+                stages = self.apigw_client.get_stages(
+                    restApiId=api_id).get('item', [])
                 for stage in stages:
                     if not stage.get('webAclArn'):
                         self.report["APIGateway_Vulnerabilities"].append({
                             "Resource": f"{api['name']} (Stage: {stage.get('stageName', 'default')})",
                             "Issue": "API stage lacks WAF protection."
                         })
-                resources = self.apigw_client.get_resources(restApiId=api_id).get('items', [])
+                resources = self.apigw_client.get_resources(
+                    restApiId=api_id).get('items', [])
                 for res in resources:
                     for method_name in res.get('resourceMethods', {}):
                         if method_name != 'OPTIONS':
-                            method_info = self.apigw_client.get_method(restApiId=api_id, resourceId=res['id'], httpMethod=method_name)
+                            method_info = self.apigw_client.get_method(
+                                restApiId=api_id, resourceId=res['id'], httpMethod=method_name)
                             if method_info.get('authorizationType') == 'NONE':
                                 self.report["APIGateway_Vulnerabilities"].append({
                                     "Resource": f"{api['name']} ({res.get('path', '/')} : {method_name})",
@@ -221,15 +239,16 @@ class CloudSecurityScanner:
         # JSON
         with open("report.json", "w") as f:
             json.dump(self.report, f, indent=4)
-        
+
         # CSV
         with open("report.csv", "w", newline='') as f:
             writer = csv.writer(f)
             writer.writerow(["Category", "Resource", "Issue"])
             for category, vulnerabilities in self.report.items():
                 for vuln in vulnerabilities:
-                    writer.writerow([category, vuln["Resource"], vuln["Issue"]])
-        
+                    writer.writerow(
+                        [category, vuln["Resource"], vuln["Issue"]])
+
         # HTML
         html_content = "<html><head><title>Cloud Security Report</title><style>body{font-family: Arial;} table{border-collapse: collapse; width: 100%;} th, td{border: 1px solid #ddd; padding: 8px;} th{background-color: #f2f2f2;}</style></head><body>"
         html_content += "<h1>AWS Cloud Security Misconfiguration Report</h1><table><tr><th>Category</th><th>Resource</th><th>Issue</th></tr>"
@@ -237,11 +256,12 @@ class CloudSecurityScanner:
             for vuln in vulnerabilities:
                 html_content += f"<tr><td>{category}</td><td>{vuln['Resource']}</td><td>{vuln['Issue']}</td></tr>"
         html_content += "</table></body></html>"
-        
+
         with open("report.html", "w") as f:
             f.write(html_content)
-        
+
         print("Reports saved: report.json, report.csv, report.html")
+
 
 if __name__ == "__main__":
     scanner = CloudSecurityScanner()
