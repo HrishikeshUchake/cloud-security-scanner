@@ -85,7 +85,19 @@ class TestCloudSecurityScanner(unittest.TestCase):
         """Benchmark: Should flag AdministratorAccess policies"""
         iam = boto3.client('iam', region_name='us-east-1')
         iam.create_role(RoleName='admin-role', AssumeRolePolicyDocument='{}')
-        iam.attach_role_policy(RoleName='admin-role', PolicyArn='arn:aws:iam::aws:policy/AdministratorAccess')
+        
+        # In Moto, managed policies don't always exist by default. Let's create it first.
+        policy_response = iam.create_policy(
+            PolicyName='AdministratorAccess',
+            PolicyDocument=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]
+            })
+        )
+        policy_arn = policy_response['Policy']['Arn']
+        
+        # Attach our newly created mock "AdministratorAccess" policy
+        iam.attach_role_policy(RoleName='admin-role', PolicyArn=policy_arn)
         
         self.scanner.scan_iam_roles()
         vulnerabilities = self.scanner.report['IAM_Vulnerabilities']
